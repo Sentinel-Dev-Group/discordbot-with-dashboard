@@ -237,7 +237,7 @@ module.exports = {
       // Send closing message then delete channel after 5 seconds
       await interaction.editReply({ content: '🔒 Closing ticket in 5 seconds...' });
 
-      await ticketChannel => interaction.channel.send({
+      await interaction.channel.send({
         embeds: [{
           color:       0xed4245,
           title:       '🔒 Ticket Closed',
