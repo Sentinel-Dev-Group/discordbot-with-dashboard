@@ -1,0 +1,200 @@
+<% locals.activePage = 'logs' %>
+
+<!-- ─── Page header ───────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>Command Logs</h2>
+    <p class="page-subtitle">
+      Every slash command used in <strong><%= guild.discord?.name ?? guild.name %></strong>
+    </p>
+  </div>
+  <div class="page-header-right">
+    <span class="badge badge-indigo">
+      <%= total.toLocaleString() %> total entries
+    </span>
+  </div>
+</div>
+
+<!-- ─── Search bar ────────────────────────────────────── -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" action="/dashboard/<%= guild.id %>/logs" class="search-form">
+      <div class="search-input-wrap">
+        <i data-feather="search" class="search-icon"></i>
+        <input
+          type="text"
+          name="search"
+          value="<%= search %>"
+          placeholder="Search by command or username..."
+          class="search-input"
+          autocomplete="off"
+        >
+        <% if (search) { %>
+          <a href="/dashboard/<%= guild.id %>/logs" class="search-clear">
+            <i data-feather="x"></i>
+          </a>
+        <% } %>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i data-feather="search"></i>
+        Search
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ─── Logs table ────────────────────────────────────── -->
+<div class="card">
+  <div class="card-body p-0">
+    <% if (logs.length === 0) { %>
+      <div class="empty-state-full">
+        <i data-feather="terminal"></i>
+        <p>
+          <%= search
+            ? `No results for "${search}"`
+            : 'No commands have been used yet.' %>
+        </p>
+        <% if (search) { %>
+          <a href="/dashboard/<%= guild.id %>/logs" class="btn btn-outline btn-sm">
+            Clear search
+          </a>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Command</th>
+              <th>User</th>
+              <th>Options</th>
+              <th>Channel</th>
+              <th>Used at</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% logs.forEach(log => { %>
+              <tr>
+                <td class="td-muted"><%= log.id %></td>
+                <td>
+                  <span class="cmd-pill">/<%= log.command %></span>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <span class="user-tag"><%= log.username ?? log.user_id %></span>
+                    <span class="td-muted user-id"><%= log.user_id %></span>
+                  </div>
+                </td>
+                <td class="td-options">
+                  <% if (log.options && log.options !== '{}' && log.options !== 'null') { %>
+                    <% const opts = typeof log.options === 'string'
+                          ? JSON.parse(log.options)
+                          : log.options %>
+                    <% const entries = Object.entries(opts).filter(([,v]) => v !== null) %>
+                    <% if (entries.length > 0) { %>
+                      <div class="options-list">
+                        <% entries.forEach(([k, v]) => { %>
+                          <span class="option-tag">
+                            <span class="option-key"><%= k %></span>:
+                            <span class="option-val"><%= v %></span>
+                          </span>
+                        <% }) %>
+                      </div>
+                    <% } else { %>
+                      <span class="td-muted">—</span>
+                    <% } %>
+                  <% } else { %>
+                    <span class="td-muted">—</span>
+                  <% } %>
+                </td>
+                <td class="td-muted">
+                  <% if (log.channel_id) { %>
+                    <span class="channel-ref">#<%= log.channel_id %></span>
+                  <% } else { %>
+                    —
+                  <% } %>
+                </td>
+                <td class="td-muted td-nowrap">
+                  <%= new Date(log.used_at).toLocaleString('en-GB', {
+                    day:    '2-digit',
+                    month:  'short',
+                    year:   'numeric',
+                    hour:   '2-digit',
+                    minute: '2-digit',
+                  }) %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- ─── Pagination ────────────────────────────────────── -->
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% if (page > 1) { %>
+      
+        href="/dashboard/<%= guild.id %>/logs?page=<%= page - 1 %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>"
+        class="pagination-btn"
+      >
+        <i data-feather="chevron-left"></i>
+        Previous
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        <i data-feather="chevron-left"></i>
+        Previous
+      </span>
+    <% } %>
+
+    <div class="pagination-pages">
+      <%
+        const delta    = 2;
+        const left     = Math.max(1, page - delta);
+        const right    = Math.min(totalPages, page + delta);
+      %>
+
+      <% if (left > 1) { %>
+        <a href="/dashboard/<%= guild.id %>/logs?page=1<%= search ? `&search=${encodeURIComponent(search)}` : '' %>"
+           class="pagination-page">1</a>
+        <% if (left > 2) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+      <% } %>
+
+      <% for (let i = left; i <= right; i++) { %>
+        
+          href="/dashboard/<%= guild.id %>/logs?page=<%= i %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>"
+          class="pagination-page <%= i === page ? 'active' : '' %>"
+        ><%= i %></a>
+      <% } %>
+
+      <% if (right < totalPages) { %>
+        <% if (right < totalPages - 1) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+        <a href="/dashboard/<%= guild.id %>/logs?page=<%= totalPages %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>"
+           class="pagination-page"><%= totalPages %></a>
+      <% } %>
+    </div>
+
+    <% if (page < totalPages) { %>
+      
+        href="/dashboard/<%= guild.id %>/logs?page=<%= page + 1 %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>"
+        class="pagination-btn"
+      >
+        Next
+        <i data-feather="chevron-right"></i>
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        Next
+        <i data-feather="chevron-right"></i>
+      </span>
+    <% } %>
+  </div>
+<% } %>

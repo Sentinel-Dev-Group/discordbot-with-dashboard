@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — Nova Bot</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Feather icons -->
+  <script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+</head>
+<body>
+
+  <!-- ─── Sidebar ─────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">N</div>
+      <span class="brand-name">Nova Bot</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <% if (typeof guild !== 'undefined' && guild) { %>
+
+        <a href="/servers" class="nav-item">
+          <i data-feather="chevron-left"></i>
+          <span>All Servers</span>
+        </a>
+
+        <div class="nav-divider"></div>
+
+        <p class="nav-label">
+          <%= guild.discord?.name ?? guild.name %>
+        </p>
+
+        <a href="/dashboard/<%= guild.id %>"
+           class="nav-item <%= locals.activePage === 'overview'     ? 'active' : '' %>">
+          <i data-feather="grid"></i>
+          <span>Overview</span>
+        </a>
+
+        <a href="/dashboard/<%= guild.id %>/config"
+           class="nav-item <%= locals.activePage === 'config'       ? 'active' : '' %>">
+          <i data-feather="settings"></i>
+          <span>Configuration</span>
+        </a>
+
+        <a href="/dashboard/<%= guild.id %>/logs"
+           class="nav-item <%= locals.activePage === 'logs'         ? 'active' : '' %>">
+          <i data-feather="terminal"></i>
+          <span>Command Logs</span>
+        </a>
+
+        <a href="/dashboard/<%= guild.id %>/moderation"
+           class="nav-item <%= locals.activePage === 'moderation'   ? 'active' : '' %>">
+          <i data-feather="shield"></i>
+          <span>Moderation</span>
+        </a>
+
+        <a href="/dashboard/<%= guild.id %>/leaderboard"
+           class="nav-item <%= locals.activePage === 'leaderboard'  ? 'active' : '' %>">
+          <i data-feather="award"></i>
+          <span>Leaderboard</span>
+        </a>
+
+      <% } else { %>
+
+        <a href="/" class="nav-item <%= locals.activePage === 'home' ? 'active' : '' %>">
+          <i data-feather="home"></i>
+          <span>Home</span>
+        </a>
+
+        <a href="/servers" class="nav-item">
+          <i data-feather="server"></i>
+          <span>My Servers</span>
+        </a>
+
+      <% } %>
+    </nav>
+
+    <!-- Sidebar footer: user info -->
+    <div class="sidebar-footer">
+      <% if (user) { %>
+        <div class="sidebar-user">
+          <img
+            src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=32"
+            alt="<%= user.username %>"
+            class="sidebar-avatar"
+            onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'"
+          >
+          <div class="sidebar-user-info">
+            <span class="sidebar-username"><%= user.username %></span>
+            <span class="sidebar-tag">#<%= user.discriminator %></span>
+          </div>
+          <a href="/auth/logout" class="logout-btn" title="Logout">
+            <i data-feather="log-out"></i>
+          </a>
+        </div>
+      <% } else { %>
+        <a href="/auth/login" class="btn btn-primary btn-sm btn-full">
+          Login with Discord
+        </a>
+      <% } %>
+    </div>
+  </aside>
+
+  <!-- ─── Main content ─────────────────────────────── -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i data-feather="menu"></i>
+        </button>
+        <h1 class="page-title"><%= title %></h1>
+      </div>
+      <div class="topbar-right">
+        <% if (user) { %>
+          <span class="topbar-user">
+            <img
+              src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=24"
+              alt=""
+              class="topbar-avatar"
+              onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'"
+            >
+            <%= user.username %>
+          </span>
+        <% } %>
+      </div>
+    </header>
+
+    <!-- Flash messages -->
+    <% if (success && success.length > 0) { %>
+      <div class="flash flash-success">
+        <i data-feather="check-circle"></i>
+        <%= success[0] %>
+      </div>
+    <% } %>
+
+    <% if (error && error.length > 0) { %>
+      <div class="flash flash-error">
+        <i data-feather="alert-circle"></i>
+        <%= error[0] %>
+      </div>
+    <% } %>
+
+    <!-- Page content injected here -->
+    <div class="content">
+      <%- body %>
+    </div>
+
+  </main>
+
+  <script>
+    // Feather icons
+    feather.replace();
+
+    // Mobile sidebar toggle
+    const toggle  = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (toggle && sidebar) {
+      toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+    }
+
+    // Auto-dismiss flash messages after 4 seconds
+    document.querySelectorAll('.flash').forEach(el => {
+      setTimeout(() => {
+        el.style.transition = 'opacity 0.4s';
+        el.style.opacity    = '0';
+        setTimeout(() => el.remove(), 400);
+      }, 4000);
+    });
+  </script>
+
+</body>
+</html>

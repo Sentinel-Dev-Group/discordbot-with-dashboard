@@ -1,0 +1,240 @@
+<% locals.activePage = 'overview' %>
+
+<!-- ─── Guild header ──────────────────────────────────── -->
+<div class="guild-header">
+  <% if (guild.discord?.icon) { %>
+    <img
+      src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.discord.icon %>.png?size=64"
+      alt="<%= guild.discord.name %>"
+      class="guild-avatar"
+      onerror="this.style.display='none'"
+    >
+  <% } else { %>
+    <div class="guild-avatar-placeholder">
+      <%= (guild.discord?.name ?? guild.name).charAt(0).toUpperCase() %>
+    </div>
+  <% } %>
+  <div class="guild-header-info">
+    <h2><%= guild.discord?.name ?? guild.name %></h2>
+    <span class="guild-id">ID: <%= guild.id %></span>
+  </div>
+  <div class="guild-header-badge online">
+    <span class="status-dot"></span>
+    Bot online
+  </div>
+</div>
+
+<!-- ─── Stat cards ────────────────────────────────────── -->
+<div class="stat-cards">
+
+  <div class="stat-card">
+    <div class="stat-card-icon indigo">
+      <i data-feather="users"></i>
+    </div>
+    <div class="stat-card-info">
+      <span class="stat-card-value"><%= guild.member_count.toLocaleString() %></span>
+      <span class="stat-card-label">Members</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-icon blue">
+      <i data-feather="trending-up"></i>
+    </div>
+    <div class="stat-card-info">
+      <span class="stat-card-value"><%= stats.ranked.toLocaleString() %></span>
+      <span class="stat-card-label">Ranked members</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-icon indigo">
+      <i data-feather="alert-triangle"></i>
+    </div>
+    <div class="stat-card-info">
+      <span class="stat-card-value"><%= stats.totalWarnings.toLocaleString() %></span>
+      <span class="stat-card-label">Total warnings</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-icon blue">
+      <i data-feather="message-square"></i>
+    </div>
+    <div class="stat-card-info">
+      <span class="stat-card-value"><%= stats.openTickets.toLocaleString() %></span>
+      <span class="stat-card-label">Open tickets</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Bottom grid ───────────────────────────────────── -->
+<div class="overview-grid">
+
+  <!-- Recent commands -->
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i data-feather="terminal"></i>
+        Top commands — last 7 days
+      </h3>
+      <a href="/dashboard/<%= guild.id %>/logs" class="card-link">
+        View all <i data-feather="arrow-right"></i>
+      </a>
+    </div>
+    <div class="card-body">
+      <% if (recentCommands.length === 0) { %>
+        <p class="empty-state">No commands used in the last 7 days.</p>
+      <% } else { %>
+        <div class="command-bars">
+          <% const maxUses = recentCommands[0].uses %>
+          <% recentCommands.forEach((cmd, i) => { %>
+            <div class="command-bar-row">
+              <span class="command-bar-name">/<%= cmd.command %></span>
+              <div class="command-bar-track">
+                <div
+                  class="command-bar-fill"
+                  style="width: <%= Math.round((cmd.uses / maxUses) * 100) %>%"
+                ></div>
+              </div>
+              <span class="command-bar-count"><%= cmd.uses %></span>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Quick config summary -->
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i data-feather="settings"></i>
+        Configuration
+      </h3>
+      <a href="/dashboard/<%= guild.id %>/config" class="card-link">
+        Edit <i data-feather="arrow-right"></i>
+      </a>
+    </div>
+    <div class="card-body">
+      <ul class="config-summary">
+        <li>
+          <span class="config-key">Log channel</span>
+          <span class="config-val <%= config.log_channel ? 'set' : 'unset' %>">
+            <% if (config.log_channel) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+        <li>
+          <span class="config-key">Welcome channel</span>
+          <span class="config-val <%= config.welcome_channel ? 'set' : 'unset' %>">
+            <% if (config.welcome_channel) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+        <li>
+          <span class="config-key">Mute role</span>
+          <span class="config-val <%= config.mute_role ? 'set' : 'unset' %>">
+            <% if (config.mute_role) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+        <li>
+          <span class="config-key">Auto role</span>
+          <span class="config-val <%= config.auto_role ? 'set' : 'unset' %>">
+            <% if (config.auto_role) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+        <li>
+          <span class="config-key">Ticket category</span>
+          <span class="config-val <%= config.ticket_category ? 'set' : 'unset' %>">
+            <% if (config.ticket_category) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+        <li>
+          <span class="config-key">Ticket log</span>
+          <span class="config-val <%= config.ticket_log ? 'set' : 'unset' %>">
+            <% if (config.ticket_log) { %>
+              <i data-feather="check-circle"></i> Set
+            <% } else { %>
+              <i data-feather="x-circle"></i> Not set
+            <% } %>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i data-feather="zap"></i>
+        Quick actions
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="quick-links">
+        <a href="/dashboard/<%= guild.id %>/logs" class="quick-link">
+          <div class="quick-link-icon indigo">
+            <i data-feather="terminal"></i>
+          </div>
+          <div class="quick-link-info">
+            <span class="quick-link-title">Command logs</span>
+            <span class="quick-link-sub">Browse usage history</span>
+          </div>
+          <i data-feather="chevron-right" class="quick-link-arrow"></i>
+        </a>
+        <a href="/dashboard/<%= guild.id %>/moderation" class="quick-link">
+          <div class="quick-link-icon blue">
+            <i data-feather="shield"></i>
+          </div>
+          <div class="quick-link-info">
+            <span class="quick-link-title">Moderation</span>
+            <span class="quick-link-sub">Warnings & bans</span>
+          </div>
+          <i data-feather="chevron-right" class="quick-link-arrow"></i>
+        </a>
+        <a href="/dashboard/<%= guild.id %>/leaderboard" class="quick-link">
+          <div class="quick-link-icon indigo">
+            <i data-feather="award"></i>
+          </div>
+          <div class="quick-link-info">
+            <span class="quick-link-title">Leaderboard</span>
+            <span class="quick-link-sub">XP rankings</span>
+          </div>
+          <i data-feather="chevron-right" class="quick-link-arrow"></i>
+        </a>
+        <a href="/dashboard/<%= guild.id %>/config" class="quick-link">
+          <div class="quick-link-icon blue">
+            <i data-feather="settings"></i>
+          </div>
+          <div class="quick-link-info">
+            <span class="quick-link-title">Configuration</span>
+            <span class="quick-link-sub">Edit server settings</span>
+          </div>
+          <i data-feather="chevron-right" class="quick-link-arrow"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>

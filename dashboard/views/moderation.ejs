@@ -1,0 +1,241 @@
+<% locals.activePage = 'moderation' %>
+
+<!-- ─── Page header ───────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>Moderation</h2>
+    <p class="page-subtitle">
+      Warnings and bans in <strong><%= guild.discord?.name ?? guild.name %></strong>
+    </p>
+  </div>
+  <div class="page-header-right">
+    <span class="badge badge-indigo">
+      <%= total.toLocaleString() %> total records
+    </span>
+  </div>
+</div>
+
+<!-- ─── Filter tabs ───────────────────────────────────── -->
+<div class="filter-tabs mb-4">
+  
+    href="/dashboard/<%= guild.id %>/moderation?filter=all"
+    class="filter-tab <%= filter === 'all' ? 'active' : '' %>"
+  >
+    <i data-feather="list"></i>
+    All
+  </a>
+  
+    href="/dashboard/<%= guild.id %>/moderation?filter=warnings"
+    class="filter-tab <%= filter === 'warnings' ? 'active' : '' %>"
+  >
+    <i data-feather="alert-triangle"></i>
+    Warnings
+  </a>
+  
+    href="/dashboard/<%= guild.id %>/moderation?filter=bans"
+    class="filter-tab <%= filter === 'bans' ? 'active' : '' %>"
+  >
+    <i data-feather="slash"></i>
+    Bans
+  </a>
+</div>
+
+<!-- ─── Records table ─────────────────────────────────── -->
+<div class="card">
+  <div class="card-body p-0">
+    <% if (rows.length === 0) { %>
+      <div class="empty-state-full">
+        <i data-feather="shield"></i>
+        <p>No <%= filter === 'all' ? 'moderation records' : filter %> found.</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>#</th>
+              <th>User</th>
+              <th>Moderator</th>
+              <th>Reason</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(row => { %>
+              <tr>
+
+                <!-- Type badge -->
+                <td>
+                  <% if (row.type === 'warning') { %>
+                    <span class="badge badge-warning">
+                      <i data-feather="alert-triangle"></i>
+                      Warning
+                    </span>
+                  <% } else { %>
+                    <span class="badge badge-danger">
+                      <i data-feather="slash"></i>
+                      Ban
+                    </span>
+                  <% } %>
+                </td>
+
+                <!-- ID -->
+                <td class="td-muted">#<%= row.id %></td>
+
+                <!-- User -->
+                <td>
+                  <div class="user-cell">
+                    <span class="user-tag"><%= row.user_id %></span>
+                  </div>
+                </td>
+
+                <!-- Moderator -->
+                <td>
+                  <div class="user-cell">
+                    <span class="user-tag"><%= row.moderator_id %></span>
+                  </div>
+                </td>
+
+                <!-- Reason -->
+                <td class="td-reason">
+                  <span title="<%= row.reason %>">
+                    <%= row.reason
+                          ? row.reason.length > 60
+                            ? row.reason.slice(0, 60) + '…'
+                            : row.reason
+                          : '—' %>
+                  </span>
+                </td>
+
+                <!-- Date -->
+                <td class="td-muted td-nowrap">
+                  <%= new Date(row.created_at).toLocaleString('en-GB', {
+                    day:    '2-digit',
+                    month:  'short',
+                    year:   'numeric',
+                    hour:   '2-digit',
+                    minute: '2-digit',
+                  }) %>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  <% if (row.type === 'warning') { %>
+                    <span class="badge badge-warning-soft">Active</span>
+                  <% } else if (row.active == 1) { %>
+                    <span class="badge badge-danger-soft">Active</span>
+                  <% } else { %>
+                    <span class="badge badge-success-soft">Revoked</span>
+                  <% } %>
+                </td>
+
+                <!-- Actions -->
+                <td>
+                  <div class="action-btns">
+                    <% if (row.type === 'warning') { %>
+                      <form
+                        method="POST"
+                        action="/dashboard/<%= guild.id %>/moderation/warning/<%= row.id %>/delete"
+                        onsubmit="return confirm('Delete warning #<%= row.id %>?')"
+                      >
+                        <button type="submit" class="btn btn-danger btn-xs">
+                          <i data-feather="trash-2"></i>
+                          Delete
+                        </button>
+                      </form>
+                    <% } else if (row.active == 1) { %>
+                      <form
+                        method="POST"
+                        action="/dashboard/<%= guild.id %>/moderation/ban/<%= row.id %>/revoke"
+                        onsubmit="return confirm('Revoke ban #<%= row.id %>?')"
+                      >
+                        <button type="submit" class="btn btn-outline btn-xs">
+                          <i data-feather="rotate-ccw"></i>
+                          Revoke
+                        </button>
+                      </form>
+                    <% } else { %>
+                      <span class="td-muted">—</span>
+                    <% } %>
+                  </div>
+                </td>
+
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- ─── Pagination ────────────────────────────────────── -->
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+
+    <% if (page > 1) { %>
+      
+        href="/dashboard/<%= guild.id %>/moderation?page=<%= page - 1 %>&filter=<%= filter %>"
+        class="pagination-btn"
+      >
+        <i data-feather="chevron-left"></i>
+        Previous
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        <i data-feather="chevron-left"></i>
+        Previous
+      </span>
+    <% } %>
+
+    <div class="pagination-pages">
+      <%
+        const delta = 2;
+        const left  = Math.max(1, page - delta);
+        const right = Math.min(totalPages, page + delta);
+      %>
+
+      <% if (left > 1) { %>
+        <a href="/dashboard/<%= guild.id %>/moderation?page=1&filter=<%= filter %>"
+           class="pagination-page">1</a>
+        <% if (left > 2) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+      <% } %>
+
+      <% for (let i = left; i <= right; i++) { %>
+        
+          href="/dashboard/<%= guild.id %>/moderation?page=<%= i %>&filter=<%= filter %>"
+          class="pagination-page <%= i === page ? 'active' : '' %>"
+        ><%= i %></a>
+      <% } %>
+
+      <% if (right < totalPages) { %>
+        <% if (right < totalPages - 1) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+        <a href="/dashboard/<%= guild.id %>/moderation?page=<%= totalPages %>&filter=<%= filter %>"
+           class="pagination-page"><%= totalPages %></a>
+      <% } %>
+    </div>
+
+    <% if (page < totalPages) { %>
+      
+        href="/dashboard/<%= guild.id %>/moderation?page=<%= page + 1 %>&filter=<%= filter %>"
+        class="pagination-btn"
+      >
+        Next
+        <i data-feather="chevron-right"></i>
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        Next
+        <i data-feather="chevron-right"></i>
+      </span>
+    <% } %>
+
+  </div>
+<% } %>

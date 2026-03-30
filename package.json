@@ -1,0 +1,32 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "Multi-guild Discord bot with web dashboard",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dashboard": "node dashboard/app.js",
+    "deploy": "node src/deploy-commands.js",
+    "dev:bot": "nodemon src/bot.js",
+    "dev:dash": "nodemon dashboard/app.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.2",
+    "express": "^4.19.2",
+    "ejs": "^3.1.10",
+    "mysql2": "^3.9.7",
+    "dotenv": "^16.4.5",
+    "express-session": "^1.18.0",
+    "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
+    "connect-flash": "^0.1.1",
+    "morgan": "^1.10.0",
+    "moment": "^2.30.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

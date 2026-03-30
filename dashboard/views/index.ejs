@@ -1,0 +1,147 @@
+<% locals.activePage = 'home' %>
+
+<!-- ─── Hero ──────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">✦ Multi-guild Discord Bot</div>
+    <h1 class="hero-title">
+      Meet <span class="gradient-text">Nova Bot</span>
+    </h1>
+    <p class="hero-subtitle">
+      A powerful, self-hosted Discord bot with moderation, levelling,
+      tickets, auto-roles, and a full web dashboard — running on your own VPS.
+    </p>
+    <div class="hero-actions">
+      <% if (user) { %>
+        <a href="/servers" class="btn btn-primary btn-lg">
+          <i data-feather="server"></i>
+          My Servers
+        </a>
+      <% } else { %>
+        <a href="/auth/login" class="btn btn-primary btn-lg">
+          <i data-feather="log-in"></i>
+          Login with Discord
+        </a>
+      <% } %>
+      
+        href="https://discord.com/api/oauth2/authorize?client_id=<%= process.env.CLIENT_ID %>&permissions=8&scope=bot%20applications.commands"
+        target="_blank"
+        class="btn btn-outline btn-lg"
+      >
+        <i data-feather="plus-circle"></i>
+        Add to Server
+      </a>
+    </div>
+  </div>
+  <div class="hero-graphic">
+    <div class="hero-card">
+      <div class="hero-card-bar">
+        <span class="bar-dot red"></span>
+        <span class="bar-dot yellow"></span>
+        <span class="bar-dot green"></span>
+        <span class="bar-label">nova-bot — dashboard</span>
+      </div>
+      <div class="hero-card-body">
+        <p class="code-line"><span class="c-purple">✦</span> Nova Bot <span class="c-green">online</span></p>
+        <p class="code-line"><span class="c-blue">›</span> Guilds: <span class="c-yellow"><%= stats.guilds.toLocaleString() %></span></p>
+        <p class="code-line"><span class="c-blue">›</span> Members: <span class="c-yellow"><%= stats.members.toLocaleString() %></span></p>
+        <p class="code-line"><span class="c-blue">›</span> Commands run: <span class="c-yellow"><%= stats.commands.toLocaleString() %></span></p>
+        <p class="code-line"><span class="c-purple">›</span> Status: <span class="c-green">● All systems operational</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Stats bar ─────────────────────────────────────── -->
+<section class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-value"><%= stats.guilds.toLocaleString() %></span>
+    <span class="stat-label">Servers</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-value"><%= stats.members.toLocaleString() %></span>
+    <span class="stat-label">Members served</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-value"><%= stats.commands.toLocaleString() %></span>
+    <span class="stat-label">Commands run</span>
+  </div>
+</section>
+
+<!-- ─── Features ─────────────────────────────────────── -->
+<section class="features">
+  <h2 class="section-title">Everything you need</h2>
+  <p class="section-subtitle">
+    All features configurable per-server through the dashboard or slash commands.
+  </p>
+
+  <div class="features-grid">
+
+    <div class="feature-card">
+      <div class="feature-icon indigo">
+        <i data-feather="shield"></i>
+      </div>
+      <h3>Moderation</h3>
+      <p>Ban, kick, warn, and mute members with full audit logging and a dedicated mod-log channel.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon blue">
+        <i data-feather="trending-up"></i>
+      </div>
+      <h3>Levelling & XP</h3>
+      <p>Automatic XP tracking per server with configurable cooldowns, rank cards, and leaderboards.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon indigo">
+        <i data-feather="message-square"></i>
+      </div>
+      <h3>Ticket system</h3>
+      <p>Private support ticket channels with open, close, add, and remove commands built in.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon blue">
+        <i data-feather="user-check"></i>
+      </div>
+      <h3>Auto-roles</h3>
+      <p>Automatically assign roles to new members the moment they join your server.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon indigo">
+        <i data-feather="bell"></i>
+      </div>
+      <h3>Welcome messages</h3>
+      <p>Fully customisable welcome embeds with user mention, username, and member count tokens.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon blue">
+        <i data-feather="bar-chart-2"></i>
+      </div>
+      <h3>Web dashboard</h3>
+      <p>Manage every server setting, view logs, and browse the XP leaderboard from your browser.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── CTA ───────────────────────────────────────────── -->
+<section class="cta">
+  <div class="cta-inner">
+    <h2>Ready to get started?</h2>
+    <p>Add Nova Bot to your server and configure it in seconds.</p>
+    
+      href="https://discord.com/api/oauth2/authorize?client_id=<%= process.env.CLIENT_ID %>&permissions=8&scope=bot%20applications.commands"
+      target="_blank"
+      class="btn btn-primary btn-lg"
+    >
+      <i data-feather="plus-circle"></i>
+      Add Nova Bot
+    </a>
+  </div>
+</section>

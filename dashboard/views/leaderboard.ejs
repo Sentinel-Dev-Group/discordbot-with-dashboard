@@ -1,0 +1,251 @@
+<% locals.activePage = 'leaderboard' %>
+
+<!-- ─── Page header ───────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>XP Leaderboard</h2>
+    <p class="page-subtitle">
+      Top members by XP in <strong><%= guild.discord?.name ?? guild.name %></strong>
+    </p>
+  </div>
+  <div class="page-header-right">
+    <span class="badge badge-indigo">
+      <%= total.toLocaleString() %> ranked members
+    </span>
+  </div>
+</div>
+
+<!-- ─── Top 3 podium (page 1 only) ───────────────────── -->
+<% if (page === 1 && members.length >= 3) { %>
+  <div class="podium">
+
+    <!-- 2nd place -->
+    <div class="podium-item second">
+      <div class="podium-avatar">
+        <span class="podium-rank">🥈</span>
+        <div class="podium-initial">
+          <%= (members[1].username ?? members[1].user_id).charAt(0).toUpperCase() %>
+        </div>
+      </div>
+      <div class="podium-info">
+        <span class="podium-name">
+          <%= members[1].username ?? members[1].user_id %>
+        </span>
+        <span class="podium-xp">
+          <%= Number(members[1].xp).toLocaleString() %> XP
+        </span>
+        <span class="podium-level">Level <%= members[1].level %></span>
+      </div>
+      <div class="podium-block second-block">2</div>
+    </div>
+
+    <!-- 1st place -->
+    <div class="podium-item first">
+      <div class="podium-crown">👑</div>
+      <div class="podium-avatar large">
+        <span class="podium-rank">🥇</span>
+        <div class="podium-initial large">
+          <%= (members[0].username ?? members[0].user_id).charAt(0).toUpperCase() %>
+        </div>
+      </div>
+      <div class="podium-info">
+        <span class="podium-name">
+          <%= members[0].username ?? members[0].user_id %>
+        </span>
+        <span class="podium-xp">
+          <%= Number(members[0].xp).toLocaleString() %> XP
+        </span>
+        <span class="podium-level">Level <%= members[0].level %></span>
+      </div>
+      <div class="podium-block first-block">1</div>
+    </div>
+
+    <!-- 3rd place -->
+    <div class="podium-item third">
+      <div class="podium-avatar">
+        <span class="podium-rank">🥉</span>
+        <div class="podium-initial">
+          <%= (members[2].username ?? members[2].user_id).charAt(0).toUpperCase() %>
+        </div>
+      </div>
+      <div class="podium-info">
+        <span class="podium-name">
+          <%= members[2].username ?? members[2].user_id %>
+        </span>
+        <span class="podium-xp">
+          <%= Number(members[2].xp).toLocaleString() %> XP
+        </span>
+        <span class="podium-level">Level <%= members[2].level %></span>
+      </div>
+      <div class="podium-block third-block">3</div>
+    </div>
+
+  </div>
+<% } %>
+
+<!-- ─── Full rankings table ───────────────────────────── -->
+<div class="card">
+  <div class="card-body p-0">
+    <% if (members.length === 0) { %>
+      <div class="empty-state-full">
+        <i data-feather="award"></i>
+        <p>No members have earned XP yet.</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Member</th>
+              <th>Level</th>
+              <th>Total XP</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% members.forEach((member, i) => { %>
+              <%
+                const pos     = ((page - 1) * 20) + i + 1;
+                const medals  = { 1: '🥇', 2: '🥈', 3: '🥉' };
+                const medal   = medals[pos] ?? null;
+
+                // Calculate progress to next level
+                const xpForLevel  = (lvl) => 100 * lvl * lvl + 50 * lvl;
+                const currentFloor = xpForLevel(member.level);
+                const nextCeiling  = xpForLevel(member.level + 1);
+                const current      = member.xp - currentFloor;
+                const needed       = nextCeiling - currentFloor;
+                const percent      = Math.min(100, Math.floor((current / needed) * 100));
+              %>
+              <tr class="<%= pos <= 3 ? 'row-top3' : '' %>">
+
+                <!-- Rank -->
+                <td>
+                  <% if (medal) { %>
+                    <span class="rank-medal"><%= medal %></span>
+                  <% } else { %>
+                    <span class="rank-number">#<%= pos %></span>
+                  <% } %>
+                </td>
+
+                <!-- Member -->
+                <td>
+                  <div class="user-cell">
+                    <div class="leaderboard-avatar">
+                      <%= (member.username ?? member.user_id).charAt(0).toUpperCase() %>
+                    </div>
+                    <div>
+                      <span class="user-tag">
+                        <%= member.username ?? member.user_id %>
+                      </span>
+                      <span class="td-muted user-id"><%= member.user_id %></span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Level -->
+                <td>
+                  <span class="level-badge">
+                    <i data-feather="star"></i>
+                    <%= member.level %>
+                  </span>
+                </td>
+
+                <!-- XP -->
+                <td>
+                  <span class="xp-value">
+                    <%= Number(member.xp).toLocaleString() %>
+                  </span>
+                  <span class="td-muted"> XP</span>
+                </td>
+
+                <!-- Progress bar -->
+                <td class="td-progress">
+                  <div class="progress-wrap">
+                    <div class="progress-bar-track">
+                      <div
+                        class="progress-bar-fill"
+                        style="width: <%= percent %>%"
+                      ></div>
+                    </div>
+                    <span class="progress-label"><%= percent %>%</span>
+                  </div>
+                </td>
+
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- ─── Pagination ────────────────────────────────────── -->
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+
+    <% if (page > 1) { %>
+      
+        href="/dashboard/<%= guild.id %>/leaderboard?page=<%= page - 1 %>"
+        class="pagination-btn"
+      >
+        <i data-feather="chevron-left"></i>
+        Previous
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        <i data-feather="chevron-left"></i>
+        Previous
+      </span>
+    <% } %>
+
+    <div class="pagination-pages">
+      <%
+        const delta = 2;
+        const left  = Math.max(1, page - delta);
+        const right = Math.min(totalPages, page + delta);
+      %>
+
+      <% if (left > 1) { %>
+        <a href="/dashboard/<%= guild.id %>/leaderboard?page=1"
+           class="pagination-page">1</a>
+        <% if (left > 2) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+      <% } %>
+
+      <% for (let i = left; i <= right; i++) { %>
+        
+          href="/dashboard/<%= guild.id %>/leaderboard?page=<%= i %>"
+          class="pagination-page <%= i === page ? 'active' : '' %>"
+        ><%= i %></a>
+      <% } %>
+
+      <% if (right < totalPages) { %>
+        <% if (right < totalPages - 1) { %>
+          <span class="pagination-ellipsis">…</span>
+        <% } %>
+        <a href="/dashboard/<%= guild.id %>/leaderboard?page=<%= totalPages %>"
+           class="pagination-page"><%= totalPages %></a>
+      <% } %>
+    </div>
+
+    <% if (page < totalPages) { %>
+      
+        href="/dashboard/<%= guild.id %>/leaderboard?page=<%= page + 1 %>"
+        class="pagination-btn"
+      >
+        Next
+        <i data-feather="chevron-right"></i>
+      </a>
+    <% } else { %>
+      <span class="pagination-btn disabled">
+        Next
+        <i data-feather="chevron-right"></i>
+      </span>
+    <% } %>
+
+  </div>
+<% } %>
