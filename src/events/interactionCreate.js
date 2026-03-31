@@ -6,6 +6,29 @@ module.exports = {
   once: false,
 
   async execute(interaction, client) {
+
+    // ─── Button interactions ──────────────────────────
+    if (interaction.isButton()) {
+      if (interaction.customId === 'ticket_close') {
+        const ticketCommand = require('../commands/ticket');
+        interaction.options = {
+          getSubcommand: () => 'close',
+          getString: () => null,
+        };
+        try {
+          await ticketCommand.execute(interaction, client);
+        } catch (err) {
+          console.error('[Interactions] Error in ticket_close button:', err);
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
+          } else {
+            await interaction.reply({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
+          }
+        }
+      }
+      return;
+    }
+
     // ─── Slash commands only ──────────────────────────
     if (!interaction.isChatInputCommand()) return;
 
@@ -46,8 +69,6 @@ module.exports = {
       }
 
       timestamps.set(interaction.user.id, now);
-
-      // Clean up expired cooldown entries every time to avoid memory bloat
       setTimeout(() => timestamps.delete(interaction.user.id), cooldownMs);
     }
 
@@ -80,7 +101,6 @@ module.exports = {
 
     // ─── Log command usage ────────────────────────────
     try {
-      // Collect slash command options as a plain object for storage
       const options = {};
       interaction.options.data.forEach(opt => {
         options[opt.name] = opt.value ?? null;
@@ -100,7 +120,6 @@ module.exports = {
         ],
       );
     } catch (err) {
-      // Logging failure should never block the command itself
       console.error('[Interactions] Failed to log command:', err.message);
     }
 
@@ -115,7 +134,6 @@ module.exports = {
         ephemeral: true,
       };
 
-      // Reply or follow up depending on whether we already responded
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(errorPayload);
       } else {
