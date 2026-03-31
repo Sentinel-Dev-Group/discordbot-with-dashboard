@@ -40,13 +40,13 @@ module.exports = {
   cooldown: 10,
 
   async execute(interaction, client) {
+    await interaction.deferReply({ ephemeral: true });
+
     const sub                      = interaction.options.getSubcommand();
     const { guild, user: invoker } = interaction;
 
     // ─── add ───────────────────────────────────────
     if (sub === 'add') {
-      await interaction.deferReply({ ephemeral: true });
-
       const username      = interaction.options.getString('username').toLowerCase().trim();
       const channel       = interaction.options.getChannel('channel');
       const customMessage = interaction.options.getString('message') ?? null;
@@ -126,8 +126,6 @@ module.exports = {
 
     // ─── remove ────────────────────────────────────
     if (sub === 'remove') {
-      await interaction.deferReply({ ephemeral: true });
-
       const username = interaction.options.getString('username').toLowerCase().trim();
 
       const rows = await query(
@@ -161,8 +159,6 @@ module.exports = {
 
     // ─── list ──────────────────────────────────────
     if (sub === 'list') {
-      await interaction.deferReply({ ephemeral: true });
-
       const streamers = await query(
         `SELECT * FROM twitch_subscriptions
          WHERE guild_id = ?
