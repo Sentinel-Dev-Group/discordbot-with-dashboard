@@ -130,7 +130,14 @@ module.exports = {
     try {
       const options = {};
       interaction.options.data.forEach(opt => {
-        options[opt.name] = opt.value ?? null;
+        if (opt.type === 1 || opt.type === 2) {
+          // Subcommand or subcommand group — flatten nested options
+          opt.options?.forEach(subOpt => {
+            options[subOpt.name] = subOpt.value ?? null;
+          });
+        } else {
+          options[opt.name] = opt.value ?? null;
+        }
       });
 
       await dbExecute(
