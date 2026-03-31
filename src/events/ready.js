@@ -1,5 +1,6 @@
 const { ActivityType } = require('discord.js');
 const { execute: dbExecute, query } = require('../db');
+const { subscribeToStreamer, listSubscriptions } = require('../utils/twitch');
 
 module.exports = {
   name: 'ready',
@@ -10,12 +11,10 @@ module.exports = {
     console.log(`[Ready] Serving ${client.guilds.cache.size} guild(s)`);
 
     // ─── Sync all current guilds into DB ────────────────
-    // Catches any guilds added while the bot was offline
     const guilds = client.guilds.cache.values();
 
     for (const guild of guilds) {
       try {
-        // Upsert guild row
         await dbExecute(
           `INSERT INTO guilds (id, name, icon, member_count, active)
            VALUES (?, ?, ?, ?, 1)
@@ -27,7 +26,6 @@ module.exports = {
           [guild.id, guild.name, guild.icon ?? null, guild.memberCount],
         );
 
-        // Ensure config row exists
         await dbExecute(
           `INSERT IGNORE INTO guild_config (guild_id) VALUES (?)`,
           [guild.id],
@@ -42,7 +40,6 @@ module.exports = {
     // ─── Set bot presence ───────────────────────────────
     const setPresence = () => {
       const guildCount = client.guilds.cache.size;
-
       client.user.setPresence({
         status: 'online',
         activities: [
@@ -55,12 +52,9 @@ module.exports = {
     };
 
     setPresence();
-
-    // Refresh presence every 10 minutes
     setInterval(setPresence, 10 * 60 * 1000);
 
     // ─── Expired mute checker ───────────────────────────
-    // Polls DB every minute and lifts mutes that have expired
     const checkExpiredMutes = async () => {
       try {
         const expired = await query(
@@ -97,10 +91,57 @@ module.exports = {
       }
     };
 
-    // Run immediately on startup then every 60 seconds
     await checkExpiredMutes();
     setInterval(checkExpiredMutes, 60 * 1000);
-
     console.log('[Ready] Expired mute checker started');
+
+    // ─── Twitch EventSub subscription sync ──────────────
+    // Runs on startup to re-subscribe to any streamers that lost
+    // their subscription while the bot was offline
+    const syncTwitchSubscriptions = async () => {
+      try {
+        // Get all tracked streamers from DB
+        const tracked = await query(
+          `SELECT DISTINCT twitch_user_id, twitch_login FROM twitch_subscriptions`,
+        );
+
+        if (tracked.length === 0) return;
+
+        console.log(`[Twitch] Syncing ${tracked.length} EventSub subscription(s)...`);
+
+        // Get all active subscriptions from Twitch
+        const activeSubs = await listSubscriptions();
+        const activeUserIds = new Set(
+          activeSubs
+            .filter(s => s.status === 'enabled')
+            .map(s => s.condition?.broadcaster_user_id)
+        );
+
+        // Re-subscribe to any that are missing
+        for (const streamer of tracked) {
+          if (!activeUserIds.has(streamer.twitch_user_id)) {
+            console.log(`[Twitch] Re-subscribing to ${streamer.twitch_login}...`);
+            const sub = await subscribeToStreamer(streamer.twitch_user_id);
+
+            if (sub?.id) {
+              await dbExecute(
+                `UPDATE twitch_subscriptions
+                 SET subscription_id = ?
+                 WHERE twitch_user_id = ?`,
+                [sub.id, streamer.twitch_user_id],
+              );
+              console.log(`[Twitch] Re-subscribed to ${streamer.twitch_login}`);
+            }
+          }
+        }
+
+        console.log('[Twitch] EventSub sync complete');
+      } catch (err) {
+        console.error('[Twitch] EventSub sync failed:', err.message);
+      }
+    };
+
+    // Run after a short delay to let the bot fully connect first
+    setTimeout(syncTwitchSubscriptions, 10000);
   },
 };

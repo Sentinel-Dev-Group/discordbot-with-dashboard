@@ -11,6 +11,9 @@ require('dotenv').config();
 // ─── Express app ──────────────────────────────────────────
 const app = express();
 
+// ─── Trust proxy ──────────────────────────────────────────
+app.set('trust proxy', 1);
+
 // ─── View engine ──────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -20,10 +23,13 @@ app.set('layout', 'layout');
 // ─── Static files ─────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── Twitch webhook route ─────────────────────────────────
+// Must be registered BEFORE express.json() — needs raw body for signature verification
+app.use('/twitch', require('./routes/twitch'));
+
 // ─── Body parsing ─────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.set('trust proxy', 1);
 
 // ─── HTTP logging ─────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
@@ -37,7 +43,7 @@ app.use(session({
   secret:            process.env.SESSION_SECRET,
   resave:            false,
   saveUninitialized: false,
-cookie: {
+  cookie: {
     secure:   false,
     httpOnly: true,
     maxAge:   1000 * 60 * 60 * 24 * 7,
@@ -70,12 +76,21 @@ app.use(passport.session());
 
 // ─── Global template locals ───────────────────────────────
 app.use((req, res, next) => {
-  res.locals.user          = req.user   ?? null;
-  res.locals.success       = req.flash('success');
-  res.locals.error         = req.flash('error');
-  res.locals.dashboardUrl  = process.env.DASHBOARD_URL;
+  res.locals.user         = req.user  ?? null;
+  res.locals.success      = req.flash('success');
+  res.locals.error        = req.flash('error');
+  res.locals.dashboardUrl = process.env.DASHBOARD_URL;
   next();
 });
+
+// ─── Attach Discord client to app ─────────────────────────
+// Allows webhook routes to access the Discord client
+try {
+  const client = require('../src/bot');
+  app.set('discordClient', client);
+} catch (err) {
+  console.warn('[Dashboard] Could not attach Discord client:', err.message);
+}
 
 // ─── Routes ───────────────────────────────────────────────
 app.use('/',          require('./routes/index'));
