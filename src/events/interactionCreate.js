@@ -9,11 +9,36 @@ module.exports = {
 
     // ─── Button interactions ──────────────────────────
     if (interaction.isButton()) {
+      const ticketCommand = require('../commands/ticket');
+
+      if (interaction.customId === 'ticket_open') {
+        interaction.options = {
+          getSubcommand: () => 'button_open',
+          getString:     () => null,
+          getUser:       () => null,
+          getChannel:    () => null,
+          data:          [],
+        };
+        try {
+          await ticketCommand.execute(interaction, client);
+        } catch (err) {
+          console.error('[Interactions] Error in ticket_open button:', err);
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: '❌ Something went wrong opening the ticket.', ephemeral: true });
+          } else {
+            await interaction.reply({ content: '❌ Something went wrong opening the ticket.', ephemeral: true });
+          }
+        }
+        return;
+      }
+
       if (interaction.customId === 'ticket_close') {
-        const ticketCommand = require('../commands/ticket');
         interaction.options = {
           getSubcommand: () => 'close',
-          getString: () => null,
+          getString:     () => null,
+          getUser:       () => null,
+          getChannel:    () => null,
+          data:          [],
         };
         try {
           await ticketCommand.execute(interaction, client);
@@ -25,7 +50,9 @@ module.exports = {
             await interaction.reply({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
           }
         }
+        return;
       }
+
       return;
     }
 

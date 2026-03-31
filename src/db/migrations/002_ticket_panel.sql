@@ -1,0 +1,3 @@
+ALTER TABLE guild_config
+  ADD COLUMN IF NOT EXISTS ticket_panel_channel VARCHAR(20) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ticket_panel_message  VARCHAR(20) DEFAULT NULL;

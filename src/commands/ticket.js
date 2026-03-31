@@ -15,15 +15,15 @@ module.exports = {
     .setName('ticket')
     .setDescription('Ticket system')
 
-    // ─── open ──────────────────────────────────────
+    // ─── panel ─────────────────────────────────────
     .addSubcommand(sub => sub
-      .setName('open')
-      .setDescription('Open a new support ticket')
-      .addStringOption(opt => opt
-        .setName('subject')
-        .setDescription('Brief description of your issue')
-        .setRequired(true)
-        .setMaxLength(100)))
+      .setName('panel')
+      .setDescription('Post the ticket panel in a channel')
+      .addChannelOption(opt => opt
+        .setName('channel')
+        .setDescription('Channel to post the panel in')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true)))
 
     // ─── close ─────────────────────────────────────
     .addSubcommand(sub => sub
@@ -53,26 +53,82 @@ module.exports = {
         .setDescription('Member to remove')
         .setRequired(true))),
 
-  cooldown: 10,
+  permissions: [],
+  cooldown: 5,
 
   async execute(interaction, client) {
-    await interaction.deferReply({ ephemeral: true });
-
     const sub                        = interaction.options.getSubcommand();
     const { guild, user: invoker }   = interaction;
     const config                     = await getConfig(guild.id);
 
-    // ─── open ──────────────────────────────────────
-    if (sub === 'open') {
-      if (!config.ticket_category) {
-        return interaction.editReply({
-          content: '❌ Ticket category not configured. Ask an admin to run `/config ticketcategory`.',
+    // ─── panel ─────────────────────────────────────
+    if (sub === 'panel') {
+      // Require ManageGuild to deploy panel
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({
+          content: '🔒 You need **Manage Server** permission to deploy the ticket panel.',
+          ephemeral: true,
         });
       }
 
-      const subject = interaction.options.getString('subject');
+      if (!config.ticket_category) {
+        return interaction.reply({
+          content: '❌ Ticket category not configured. Use `/config ticketcategory` first.',
+          ephemeral: true,
+        });
+      }
 
-      // Check for existing open ticket from this user
+      await interaction.deferReply({ ephemeral: true });
+
+      const channel = interaction.options.getChannel('channel');
+
+      const openButton = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('ticket_open')
+          .setLabel('Open a Ticket')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🎫'),
+      );
+
+      const panelMsg = await channel.send({
+        embeds: [{
+          color: 0x5865f2,
+          title: '🎫 Support Tickets',
+          description: [
+            'Need help? Click the button below to open a support ticket.',
+            '',
+            'A private channel will be created just for you.',
+          ].join('\n'),
+          footer: { text: guild.name },
+          timestamp: new Date().toISOString(),
+        }],
+        components: [openButton],
+      });
+
+      // Save panel location to config
+      await dbExecute(
+        `UPDATE guild_config
+         SET ticket_panel_channel = ?, ticket_panel_message = ?
+         WHERE guild_id = ?`,
+        [channel.id, panelMsg.id, guild.id],
+      );
+
+      return interaction.editReply({
+        content: `✅ Ticket panel posted in ${channel}.`,
+      });
+    }
+
+    // ─── ticket_open button handler (called from interactionCreate) ──
+    if (sub === 'button_open') {
+      await interaction.deferReply({ ephemeral: true });
+
+      if (!config.ticket_category) {
+        return interaction.editReply({
+          content: '❌ Ticket category not configured. Ask an admin to set it up.',
+        });
+      }
+
+      // Check for existing open ticket
       const existing = await query(
         `SELECT channel_id FROM tickets
          WHERE guild_id = ? AND user_id = ? AND status = 'open'`,
@@ -85,22 +141,20 @@ module.exports = {
         });
       }
 
-      // Create the ticket channel
+      // Create ticket channel
       let ticketChannel;
       try {
         ticketChannel = await guild.channels.create({
           name:   `ticket-${invoker.username.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
           type:   ChannelType.GuildText,
           parent: config.ticket_category,
-          topic:  `Ticket opened by ${invoker.tag} — ${subject}`,
+          topic:  `Ticket opened by ${invoker.tag}`,
           permissionOverwrites: [
             {
-              // @everyone — deny view
               id:   guild.id,
               deny: [PermissionFlagsBits.ViewChannel],
             },
             {
-              // Ticket opener — allow view + send
               id:    invoker.id,
               allow: [
                 PermissionFlagsBits.ViewChannel,
@@ -109,7 +163,6 @@ module.exports = {
               ],
             },
             {
-              // Bot itself — allow everything
               id:    client.user.id,
               allow: [
                 PermissionFlagsBits.ViewChannel,
@@ -130,7 +183,7 @@ module.exports = {
       const result = await dbExecute(
         `INSERT INTO tickets (guild_id, channel_id, user_id, subject, status)
          VALUES (?, ?, ?, ?, 'open')`,
-        [guild.id, ticketChannel.id, invoker.id, subject],
+        [guild.id, ticketChannel.id, invoker.id, 'Support ticket'],
       );
 
       const ticketId = result.insertId;
@@ -150,8 +203,7 @@ module.exports = {
           color: 0x5865f2,
           title: `🎫 Ticket #${ticketId}`,
           fields: [
-            { name: 'Opened by', value: `${invoker.tag}`,  inline: true  },
-            { name: 'Subject',   value: subject,            inline: false },
+            { name: 'Opened by', value: invoker.tag, inline: true },
           ],
           footer: { text: 'Support will be with you shortly. Click Close to resolve.' },
           timestamp: new Date().toISOString(),
@@ -163,7 +215,7 @@ module.exports = {
         guildId:     guild.id,
         moderatorId: invoker.id,
         action:      'TICKET_OPEN',
-        metadata:    { ticketId, channelId: ticketChannel.id, subject },
+        metadata:    { ticketId, channelId: ticketChannel.id },
       });
 
       return interaction.editReply({
@@ -173,9 +225,10 @@ module.exports = {
 
     // ─── close ─────────────────────────────────────
     if (sub === 'close') {
+      await interaction.deferReply({ ephemeral: true });
+
       const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
-      // Verify this channel is an open ticket
       const ticketRows = await query(
         `SELECT * FROM tickets WHERE channel_id = ? AND status = 'open'`,
         [interaction.channelId],
@@ -189,7 +242,6 @@ module.exports = {
 
       const ticket = ticketRows[0];
 
-      // Only the opener or a moderator can close
       const isMod = interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels);
       if (ticket.user_id !== invoker.id && !isMod) {
         return interaction.editReply({
@@ -197,7 +249,6 @@ module.exports = {
         });
       }
 
-      // Update DB
       await dbExecute(
         `UPDATE tickets
          SET status = 'closed', closed_by = ?, closed_at = NOW()
@@ -214,7 +265,6 @@ module.exports = {
         metadata:    { ticketId: ticket.id, channelId: ticket.channel_id },
       });
 
-      // Log to ticket log channel
       if (config.ticket_log) {
         const logChannel = guild.channels.cache.get(config.ticket_log);
         if (logChannel) {
@@ -224,7 +274,7 @@ module.exports = {
               title: `🔒 Ticket #${ticket.id} Closed`,
               fields: [
                 { name: 'Opened by', value: `<@${ticket.user_id}>`, inline: true  },
-                { name: 'Closed by', value: `${invoker.tag}`,        inline: true  },
+                { name: 'Closed by', value: invoker.tag,             inline: true  },
                 { name: 'Subject',   value: ticket.subject,           inline: false },
                 { name: 'Reason',    value: reason,                   inline: false },
               ],
@@ -234,29 +284,30 @@ module.exports = {
         }
       }
 
-    await interaction.editReply({ content: '🔒 Closing ticket in 5 seconds...' });
+      await interaction.editReply({ content: '🔒 Closing ticket in 5 seconds...' });
 
-    await interaction.channel.send({
-      embeds: [{
-        color:       0xed4245,
-        title:       '🔒 Ticket Closed',
-        description: `Closed by ${invoker.tag}\n**Reason:** ${reason}`,
-        timestamp:   new Date().toISOString(),
-      }],
-    }).catch(() => null);
+      await interaction.channel.send({
+        embeds: [{
+          color:       0xed4245,
+          title:       '🔒 Ticket Closed',
+          description: `Closed by ${invoker.tag}\n**Reason:** ${reason}`,
+          timestamp:   new Date().toISOString(),
+        }],
+      }).catch(() => null);
 
-    setTimeout(async () => {
-      await interaction.channel.delete(`Ticket closed by ${invoker.tag}`).catch(() => null);
-    }, 5000);
+      setTimeout(async () => {
+        await interaction.channel.delete(`Ticket closed by ${invoker.tag}`).catch(() => null);
+      }, 5000);
 
-    return;
+      return;
     }
 
     // ─── add ───────────────────────────────────────
     if (sub === 'add') {
+      await interaction.deferReply({ ephemeral: true });
+
       const target = interaction.options.getUser('user');
 
-      // Verify this is a ticket channel
       const ticketRows = await query(
         `SELECT * FROM tickets WHERE channel_id = ? AND status = 'open'`,
         [interaction.channelId],
@@ -291,9 +342,10 @@ module.exports = {
 
     // ─── remove ────────────────────────────────────
     if (sub === 'remove') {
+      await interaction.deferReply({ ephemeral: true });
+
       const target = interaction.options.getUser('user');
 
-      // Prevent removing the ticket opener
       const ticketRows = await query(
         `SELECT * FROM tickets WHERE channel_id = ? AND status = 'open'`,
         [interaction.channelId],
