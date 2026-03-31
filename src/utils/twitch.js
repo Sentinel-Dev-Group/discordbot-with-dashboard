@@ -22,8 +22,10 @@ async function getAccessToken() {
     'Content-Type': 'application/x-www-form-urlencoded',
   });
 
+  console.log('[Twitch Debug] Token response:', JSON.stringify(data));
+
   appAccessToken = data.access_token;
-  tokenExpiresAt = Date.now() + (data.expires_in - 300) * 1000; // refresh 5min early
+  tokenExpiresAt = Date.now() + (data.expires_in - 300) * 1000;
 
   console.log('[Twitch] Access token refreshed');
   return appAccessToken;
@@ -33,13 +35,17 @@ async function getAccessToken() {
 async function getTwitchUser(login) {
   const token = await getAccessToken();
 
+  console.log('[Twitch Debug] Fetching user:', login, 'with token:', token ? 'present' : 'MISSING');
+
   const data = await get(
     `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`,
     {
-      'Client-ID':    process.env.TWITCH_CLIENT_ID,
+      'Client-ID':     process.env.TWITCH_CLIENT_ID,
       'Authorization': `Bearer ${token}`,
     },
   );
+
+  console.log('[Twitch Debug] getTwitchUser response:', JSON.stringify(data));
 
   return data.data?.[0] ?? null;
 }

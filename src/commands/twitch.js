@@ -8,7 +8,6 @@ module.exports = {
     .setDescription('Manage Twitch live notifications')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 
-    // ─── add ───────────────────────────────────────
     .addSubcommand(sub => sub
       .setName('add')
       .setDescription('Track a Twitch streamer and post notifications when they go live')
@@ -26,7 +25,6 @@ module.exports = {
         .setRequired(false)
         .setMaxLength(500)))
 
-    // ─── remove ────────────────────────────────────
     .addSubcommand(sub => sub
       .setName('remove')
       .setDescription('Stop tracking a Twitch streamer')
@@ -35,7 +33,6 @@ module.exports = {
         .setDescription('Twitch username to stop tracking')
         .setRequired(true)))
 
-    // ─── list ──────────────────────────────────────
     .addSubcommand(sub => sub
       .setName('list')
       .setDescription('List all tracked streamers in this server')),
@@ -44,18 +41,17 @@ module.exports = {
   cooldown: 10,
 
   async execute(interaction, client) {
-    await interaction.deferReply({ ephemeral: true });
-
-    const sub                        = interaction.options.getSubcommand();
-    const { guild, user: invoker }   = interaction;
+    const sub                      = interaction.options.getSubcommand();
+    const { guild, user: invoker } = interaction;
 
     // ─── add ───────────────────────────────────────
     if (sub === 'add') {
+      await interaction.deferReply({ ephemeral: true });
+
       const username      = interaction.options.getString('username').toLowerCase().trim();
       const channel       = interaction.options.getChannel('channel');
       const customMessage = interaction.options.getString('message') ?? null;
 
-      // Check limit — max 25 streamers per guild
       const countRows = await query(
         `SELECT COUNT(*) AS total FROM twitch_subscriptions WHERE guild_id = ?`,
         [guild.id],
@@ -67,7 +63,6 @@ module.exports = {
         });
       }
 
-      // Check not already tracked
       const existing = await query(
         `SELECT id FROM twitch_subscriptions
          WHERE guild_id = ? AND twitch_login = ?`,
@@ -80,7 +75,6 @@ module.exports = {
         });
       }
 
-      // Fetch Twitch user info
       const twitchUser = await getTwitchUser(username);
 
       if (!twitchUser) {
@@ -89,10 +83,8 @@ module.exports = {
         });
       }
 
-      // Subscribe to EventSub
       const subscription = await subscribeToStreamer(twitchUser.id);
 
-      // Insert into DB
       await dbExecute(
         `INSERT INTO twitch_subscriptions
            (guild_id, channel_id, twitch_user_id, twitch_login, subscription_id, custom_message, added_by)
@@ -119,12 +111,10 @@ module.exports = {
           fields: [
             { name: 'Streamer',    value: `[${twitchUser.display_name}](https://twitch.tv/${twitchUser.login})`, inline: true  },
             { name: 'Channel',     value: `${channel}`,                                                           inline: true  },
-            { name: 'Subscribers', value: subscription ? '✅ EventSub active' : '⚠️ EventSub pending',            inline: false },
+            { name: 'EventSub',    value: subscription ? '✅ Active' : '⚠️ Pending',                              inline: false },
             {
               name:   'Notification message',
-              value:  customMessage
-                ? customMessage
-                : '`Default — {streamer} is now live playing {game}!`',
+              value:  customMessage ?? '`Default — {streamer} is now live playing {game}!`',
               inline: false,
             },
           ],
@@ -137,6 +127,8 @@ module.exports = {
 
     // ─── remove ────────────────────────────────────
     if (sub === 'remove') {
+      await interaction.deferReply({ ephemeral: true });
+
       const username = interaction.options.getString('username').toLowerCase().trim();
 
       const rows = await query(
@@ -151,11 +143,10 @@ module.exports = {
         });
       }
 
-      const sub = rows[0];
+      const streamer = rows[0];
 
-      // Unsubscribe from EventSub if we have a subscription ID
-      if (sub.subscription_id) {
-        await unsubscribeFromStreamer(sub.subscription_id);
+      if (streamer.subscription_id) {
+        await unsubscribeFromStreamer(streamer.subscription_id);
       }
 
       await dbExecute(
@@ -171,6 +162,8 @@ module.exports = {
 
     // ─── list ──────────────────────────────────────
     if (sub === 'list') {
+      await interaction.deferReply({ ephemeral: true });
+
       const streamers = await query(
         `SELECT * FROM twitch_subscriptions
          WHERE guild_id = ?
