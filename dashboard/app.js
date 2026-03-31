@@ -1,4 +1,5 @@
 const express        = require('express');
+const expressLayouts = require('express-ejs-layouts');
 const session        = require('express-session');
 const passport       = require('passport');
 const { Strategy }   = require('passport-discord');
@@ -13,6 +14,8 @@ const app = express();
 // ─── View engine ──────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
 // ─── Static files ─────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,9 +37,9 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    secure:   process.env.NODE_ENV === 'production', // HTTPS only in prod
+    secure:   process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge:   1000 * 60 * 60 * 24 * 7,              // 7 days
+    maxAge:   1000 * 60 * 60 * 24 * 7,
   },
 }));
 
@@ -52,7 +55,6 @@ passport.use(new Strategy(
     scope:        ['identify', 'guilds'],
   },
   (accessToken, refreshToken, profile, done) => {
-    // Attach tokens to profile for later use
     profile.accessToken  = accessToken;
     profile.refreshToken = refreshToken;
     return done(null, profile);
@@ -66,7 +68,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ─── Global template locals ───────────────────────────────
-// Available in every EJS template as `user`, `flash` etc.
 app.use((req, res, next) => {
   res.locals.user          = req.user   ?? null;
   res.locals.success       = req.flash('success');
