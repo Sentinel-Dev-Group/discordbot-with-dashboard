@@ -12,17 +12,18 @@ async function getAccessToken() {
     return appAccessToken;
   }
 
-  const params = new URLSearchParams({
-    client_id:     process.env.TWITCH_CLIENT_ID,
-    client_secret: process.env.TWITCH_CLIENT_SECRET,
-    grant_type:    'client_credentials',
-  });
+  const body = `client_id=${encodeURIComponent(process.env.TWITCH_CLIENT_ID)}&client_secret=${encodeURIComponent(process.env.TWITCH_CLIENT_SECRET)}&grant_type=client_credentials`;
 
-  const data = await post('https://id.twitch.tv/oauth2/token', params.toString(), {
-    'Content-Type': 'application/x-www-form-urlencoded',
+  const data = await post('https://id.twitch.tv/oauth2/token', body, {
+    'Content-Type':   'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(body).toString(),
   });
 
   console.log('[Twitch Debug] Token response:', JSON.stringify(data));
+
+  if (!data.access_token) {
+    throw new Error(`Twitch token error: ${JSON.stringify(data)}`);
+  }
 
   appAccessToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in - 300) * 1000;
@@ -169,7 +170,7 @@ function post(url, body, headers = {}) {
       hostname: urlObj.hostname,
       path:     urlObj.pathname + urlObj.search,
       method:   'POST',
-      headers:  { ...headers, 'Content-Length': Buffer.byteLength(body) },
+      headers:  { ...headers, 'Content-Length': Buffer.byteLength(body).toString() },
     };
 
     const req = https.request(options, res => {
