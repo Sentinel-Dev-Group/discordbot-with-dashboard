@@ -5,13 +5,11 @@ const { getConfig, setConfig }      = require('../../src/utils/guildConfig');
 const { requireAuth }               = require('./index');
 
 // ─── Middleware: verify guild access ──────────────────────
-// Checks the logged-in user actually manages the requested guild
 async function requireGuildAccess(req, res, next) {
   try {
     const { guildId } = req.params;
     const userGuilds  = req.user.guilds ?? [];
 
-    // Check user has MANAGE_GUILD on this guild
     const guild = userGuilds.find(g => {
       const perms = BigInt(g.permissions);
       return g.id === guildId && (perms & BigInt(0x20)) === BigInt(0x20);
@@ -22,7 +20,6 @@ async function requireGuildAccess(req, res, next) {
       return res.redirect('/servers');
     }
 
-    // Check bot is actually in that guild
     const rows = await query(
       `SELECT * FROM guilds WHERE id = ? AND active = 1`,
       [guildId],
@@ -33,9 +30,8 @@ async function requireGuildAccess(req, res, next) {
       return res.redirect('/servers');
     }
 
-    // Attach to request for use in route handlers
-    req.guild    = rows[0];
-    req.guild.discord = guild; // Discord OAuth guild data (name, icon etc.)
+    req.guild         = rows[0];
+    req.guild.discord = guild;
     next();
   } catch (err) {
     console.error('[Dashboard] requireGuildAccess error:', err.message);
@@ -53,7 +49,6 @@ router.get('/:guildId', requireGuildAccess, async (req, res) => {
     const { guildId } = req.params;
     const config      = await getConfig(guildId);
 
-    // Recent command usage (last 7 days)
     const recentCommands = await query(
       `SELECT command, COUNT(*) AS uses
        FROM command_logs
@@ -64,7 +59,6 @@ router.get('/:guildId', requireGuildAccess, async (req, res) => {
       [guildId],
     );
 
-    // Total members with XP
     const xpStats = await query(
       `SELECT COUNT(*) AS ranked, SUM(xp) AS total_xp
        FROM guild_members
@@ -72,7 +66,6 @@ router.get('/:guildId', requireGuildAccess, async (req, res) => {
       [guildId],
     );
 
-    // Open tickets
     const ticketStats = await query(
       `SELECT COUNT(*) AS open_tickets
        FROM tickets
@@ -80,7 +73,6 @@ router.get('/:guildId', requireGuildAccess, async (req, res) => {
       [guildId],
     );
 
-    // Total warnings
     const warnStats = await query(
       `SELECT COUNT(*) AS total_warnings
        FROM warnings
@@ -94,8 +86,8 @@ router.get('/:guildId', requireGuildAccess, async (req, res) => {
       config,
       recentCommands,
       stats: {
-        ranked:        xpStats[0]?.ranked        ?? 0,
-        totalXp:       xpStats[0]?.total_xp      ?? 0,
+        ranked:        xpStats[0]?.ranked           ?? 0,
+        totalXp:       xpStats[0]?.total_xp         ?? 0,
         openTickets:   ticketStats[0]?.open_tickets  ?? 0,
         totalWarnings: warnStats[0]?.total_warnings  ?? 0,
       },
@@ -208,7 +200,7 @@ router.get('/:guildId/moderation', requireGuildAccess, async (req, res) => {
     const page        = Math.max(1, parseInt(req.query.page) || 1);
     const pageSize    = 20;
     const offset      = (page - 1) * pageSize;
-    const filter      = req.query.filter ?? 'all'; // all | warnings | bans
+    const filter      = req.query.filter ?? 'all';
 
     let rows, total;
 
@@ -218,13 +210,10 @@ router.get('/:guildId/moderation', requireGuildAccess, async (req, res) => {
         [guildId],
       );
       total = countRows[0]?.total ?? 0;
-
-      rows = await query(
+      rows  = await query(
         `SELECT 'warning' AS type, id, user_id, moderator_id, reason, created_at
-         FROM warnings
-         WHERE guild_id = ?
-         ORDER BY created_at DESC
-         LIMIT ? OFFSET ?`,
+         FROM warnings WHERE guild_id = ?
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [guildId, pageSize, offset],
       );
     } else if (filter === 'bans') {
@@ -233,17 +222,13 @@ router.get('/:guildId/moderation', requireGuildAccess, async (req, res) => {
         [guildId],
       );
       total = countRows[0]?.total ?? 0;
-
-      rows = await query(
+      rows  = await query(
         `SELECT 'ban' AS type, id, user_id, moderator_id, reason, created_at, active
-         FROM bans
-         WHERE guild_id = ?
-         ORDER BY created_at DESC
-         LIMIT ? OFFSET ?`,
+         FROM bans WHERE guild_id = ?
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [guildId, pageSize, offset],
       );
     } else {
-      // Combined view — warnings + bans interleaved by date
       const countRows = await query(
         `SELECT
            (SELECT COUNT(*) FROM warnings WHERE guild_id = ?) +
@@ -251,15 +236,13 @@ router.get('/:guildId/moderation', requireGuildAccess, async (req, res) => {
         [guildId, guildId],
       );
       total = countRows[0]?.total ?? 0;
-
-      rows = await query(
+      rows  = await query(
         `(SELECT 'warning' AS type, id, user_id, moderator_id, reason, created_at, 1 AS active
           FROM warnings WHERE guild_id = ?)
          UNION ALL
          (SELECT 'ban' AS type, id, user_id, moderator_id, reason, created_at, active
           FROM bans WHERE guild_id = ?)
-         ORDER BY created_at DESC
-         LIMIT ? OFFSET ?`,
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [guildId, guildId, pageSize, offset],
       );
     }
@@ -288,18 +271,15 @@ router.post('/:guildId/moderation/warning/:id/delete',
   async (req, res) => {
     try {
       const { guildId, id } = req.params;
-
       await dbExecute(
         `DELETE FROM warnings WHERE id = ? AND guild_id = ?`,
         [id, guildId],
       );
-
       req.flash('success', `Warning #${id} deleted.`);
     } catch (err) {
       console.error('[Dashboard] Delete warning error:', err.message);
       req.flash('error', 'Failed to delete warning.');
     }
-
     res.redirect(`/dashboard/${req.params.guildId}/moderation`);
   },
 );
@@ -310,18 +290,15 @@ router.post('/:guildId/moderation/ban/:id/revoke',
   async (req, res) => {
     try {
       const { guildId, id } = req.params;
-
       await dbExecute(
         `UPDATE bans SET active = 0 WHERE id = ? AND guild_id = ?`,
         [id, guildId],
       );
-
       req.flash('success', `Ban #${id} marked as revoked.`);
     } catch (err) {
       console.error('[Dashboard] Revoke ban error:', err.message);
       req.flash('error', 'Failed to revoke ban.');
     }
-
     res.redirect(`/dashboard/${req.params.guildId}/moderation`);
   },
 );
@@ -367,6 +344,100 @@ router.get('/:guildId/leaderboard', requireGuildAccess, async (req, res) => {
     req.flash('error', 'Failed to load leaderboard.');
     res.redirect(`/dashboard/${req.params.guildId}`);
   }
+});
+
+// ─── GET /dashboard/:guildId/twitch ───────────────────────
+router.get('/:guildId/twitch', requireGuildAccess, async (req, res) => {
+  try {
+    const streamers = await query(
+      `SELECT * FROM twitch_subscriptions
+       WHERE guild_id = ?
+       ORDER BY twitch_login ASC`,
+      [req.params.guildId],
+    );
+
+    return res.render('twitch', {
+      title:    `${req.guild.discord.name} — Twitch`,
+      guild:    req.guild,
+      streamers,
+    });
+  } catch (err) {
+    console.error('[Dashboard] Twitch error:', err.message);
+    req.flash('error', 'Failed to load Twitch settings.');
+    res.redirect(`/dashboard/${req.params.guildId}`);
+  }
+});
+
+// ─── POST /dashboard/:guildId/twitch/add ──────────────────
+router.post('/:guildId/twitch/add', requireGuildAccess, async (req, res) => {
+  try {
+    const { username, channel_id, custom_message } = req.body;
+    const { getTwitchUser, subscribeToStreamer }    = require('../../src/utils/twitch');
+
+    const twitchUser = await getTwitchUser(username.toLowerCase().trim());
+
+    if (!twitchUser) {
+      req.flash('error', `Twitch user "${username}" not found.`);
+      return res.redirect(`/dashboard/${req.params.guildId}/twitch`);
+    }
+
+    const subscription = await subscribeToStreamer(twitchUser.id);
+
+    await dbExecute(
+      `INSERT INTO twitch_subscriptions
+         (guild_id, channel_id, twitch_user_id, twitch_login, subscription_id, custom_message, added_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         channel_id      = VALUES(channel_id),
+         subscription_id = VALUES(subscription_id),
+         custom_message  = VALUES(custom_message)`,
+      [
+        req.params.guildId,
+        channel_id,
+        twitchUser.id,
+        twitchUser.login,
+        subscription?.id ?? null,
+        custom_message   || null,
+        req.user.id,
+      ],
+    );
+
+    req.flash('success', `Now tracking ${twitchUser.display_name}.`);
+  } catch (err) {
+    console.error('[Dashboard] Twitch add error:', err.message);
+    req.flash('error', 'Failed to add streamer.');
+  }
+  res.redirect(`/dashboard/${req.params.guildId}/twitch`);
+});
+
+// ─── POST /dashboard/:guildId/twitch/remove ───────────────
+router.post('/:guildId/twitch/remove', requireGuildAccess, async (req, res) => {
+  try {
+    const { username } = req.body;
+    const { unsubscribeFromStreamer } = require('../../src/utils/twitch');
+
+    const rows = await query(
+      `SELECT * FROM twitch_subscriptions
+       WHERE guild_id = ? AND twitch_login = ?`,
+      [req.params.guildId, username],
+    );
+
+    if (rows.length > 0 && rows[0].subscription_id) {
+      await unsubscribeFromStreamer(rows[0].subscription_id);
+    }
+
+    await dbExecute(
+      `DELETE FROM twitch_subscriptions
+       WHERE guild_id = ? AND twitch_login = ?`,
+      [req.params.guildId, username],
+    );
+
+    req.flash('success', `Stopped tracking ${username}.`);
+  } catch (err) {
+    console.error('[Dashboard] Twitch remove error:', err.message);
+    req.flash('error', 'Failed to remove streamer.');
+  }
+  res.redirect(`/dashboard/${req.params.guildId}/twitch`);
 });
 
 module.exports = router;

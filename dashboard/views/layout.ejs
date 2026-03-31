@@ -62,7 +62,12 @@
           <i data-feather="award"></i>
           <span>Leaderboard</span>
         </a>
-
+        
+        <a href="/dashboard/<%= guild.id %>/twitch"
+          class="nav-item <%= locals.activePage === 'twitch' ? 'active' : '' %>">
+          <i data-feather="twitch"></i>
+          <span>Twitch</span>
+        </a>
       <% } else { %>
 
         <a href="/" class="nav-item <%= locals.activePage === 'home' ? 'active' : '' %>">
