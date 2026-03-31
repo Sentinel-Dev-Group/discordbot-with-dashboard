@@ -135,6 +135,39 @@
         >
         <p class="form-hint">Channel where closed tickets are logged.</p>
       </div>
+
+      <!-- ─── Panel status ───────────────────────── -->
+      <div class="panel-status">
+        <div class="panel-status-label">
+          <i data-feather="layout"></i>
+          Ticket panel
+        </div>
+        <% if (config.ticket_panel_channel && config.ticket_panel_message) { %>
+          <div class="panel-status-info">
+            <span class="badge badge-success-soft">
+              <i data-feather="check-circle"></i>
+              Active
+            </span>
+            <span class="panel-status-detail">
+              Channel: <code><%= config.ticket_panel_channel %></code>
+            </span>
+          </div>
+          <p class="form-hint">
+            To move the panel, use <code>/ticket panel #channel</code> in Discord.
+          </p>
+        <% } else { %>
+          <div class="panel-status-info">
+            <span class="badge badge-warning-soft">
+              <i data-feather="alert-circle"></i>
+              Not deployed
+            </span>
+          </div>
+          <p class="form-hint">
+            Use <code>/ticket panel #channel</code> in Discord to post the ticket panel.
+          </p>
+        <% } %>
+      </div>
+
     </div>
   </div>
 
@@ -152,14 +185,20 @@
 </form>
 
 <style>
-.form-group    { margin-bottom: 20px; }
+.form-group       { margin-bottom: 20px; }
 .form-group:last-child { margin-bottom: 0; }
-.form-label    { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
-.form-input    { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; font-family: var(--font); outline: none; transition: border-color 0.15s; }
+.form-label       { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
+.form-input       { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; font-family: var(--font); outline: none; transition: border-color 0.15s; }
 .form-input:focus { border-color: var(--indigo-500); }
 .form-input::placeholder { color: var(--text-muted); }
 textarea.form-input { resize: vertical; min-height: 80px; }
-.form-hint     { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-.form-hint code { background: var(--bg-hover); padding: 2px 6px; border-radius: var(--radius-sm); font-size: 11px; color: var(--indigo-400); }
-.form-actions  { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.form-hint        { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.form-hint code   { background: var(--bg-hover); padding: 2px 6px; border-radius: var(--radius-sm); font-size: 11px; color: var(--indigo-400); }
+.form-actions     { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.panel-status     { margin-top: 20px; padding: 16px; background: var(--bg-hover); border-radius: var(--radius-md); border: 1px solid var(--border); }
+.panel-status-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.panel-status-label svg { width: 15px; height: 15px; color: var(--indigo-400); }
+.panel-status-info { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.panel-status-detail { font-size: 13px; color: var(--text-muted); }
+.panel-status-detail code { background: var(--bg-card); padding: 2px 6px; border-radius: var(--radius-sm); font-size: 11px; color: var(--indigo-400); }
 </style>
