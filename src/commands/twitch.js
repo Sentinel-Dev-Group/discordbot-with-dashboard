@@ -37,7 +37,6 @@ module.exports = {
       .setName('list')
       .setDescription('List all tracked streamers in this server')),
 
-  permissions: [PermissionFlagsBits.ManageGuild],
   cooldown: 10,
 
   async execute(interaction, client) {
