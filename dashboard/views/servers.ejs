@@ -1,0 +1,79 @@
+<% locals.activePage = 'servers' %>
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h2>My Servers</h2>
+    <p class="page-subtitle">Select a server to manage with Nova Bot</p>
+  </div>
+</div>
+
+<!-- ─── Active servers (bot present) ─────────────────── -->
+<% if (activeGuilds.length > 0) { %>
+  <p class="servers-section-title">
+    <i data-feather="check-circle"></i>
+    Nova Bot is in these servers
+  </p>
+  <div class="servers-grid">
+    <% activeGuilds.forEach(guild => { %>
+      <a href="/dashboard/<%= guild.id %>" class="server-card">
+        <% if (guild.icon) { %>
+          <img
+            src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=64"
+            alt="<%= guild.name %>"
+            class="server-icon"
+            onerror="this.style.display='none'"
+          >
+        <% } else { %>
+          <div class="server-icon-placeholder">
+            <%= guild.name.charAt(0).toUpperCase() %>
+          </div>
+        <% } %>
+        <span class="server-name"><%= guild.name %></span>
+        <span class="badge badge-indigo">Manage</span>
+      </a>
+    <% }) %>
+  </div>
+<% } %>
+
+<!-- ─── Servers without bot ───────────────────────────── -->
+<% if (inviteGuilds.length > 0) { %>
+  <p class="servers-section-title">
+    <i data-feather="plus-circle"></i>
+    Add Nova Bot to these servers
+  </p>
+  <div class="servers-grid">
+    <% inviteGuilds.forEach(guild => { %>
+      
+        href="<%= inviteUrl %>&guild_id=<%= guild.id %>"
+        target="_blank"
+        class="server-card server-invite"
+      >
+        <% if (guild.icon) { %>
+          <img
+            src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=64"
+            alt="<%= guild.name %>"
+            class="server-icon"
+            onerror="this.style.display='none'"
+          >
+        <% } else { %>
+          <div class="server-icon-placeholder">
+            <%= guild.name.charAt(0).toUpperCase() %>
+          </div>
+        <% } %>
+        <span class="server-name"><%= guild.name %></span>
+        <span class="badge badge-indigo">
+          <i data-feather="plus"></i>
+          Add Bot
+        </span>
+      </a>
+    <% }) %>
+  </div>
+<% } %>
+
+<!-- ─── Empty state ───────────────────────────────────── -->
+<% if (activeGuilds.length === 0 && inviteGuilds.length === 0) { %>
+  <div class="empty-state-full">
+    <i data-feather="server"></i>
+    <p>You don't manage any Discord servers.</p>
+  </div>
+<% } %>
