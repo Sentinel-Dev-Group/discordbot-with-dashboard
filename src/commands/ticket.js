@@ -234,23 +234,22 @@ module.exports = {
         }
       }
 
-      // Send closing message then delete channel after 5 seconds
-      await interaction.editReply({ content: '🔒 Closing ticket in 5 seconds...' });
+    await interaction.editReply({ content: '🔒 Closing ticket in 5 seconds...' });
 
-      await interaction.channel.send({
-        embeds: [{
-          color:       0xed4245,
-          title:       '🔒 Ticket Closed',
-          description: `Closed by ${invoker.tag}\n**Reason:** ${reason}`,
-          timestamp:   new Date().toISOString(),
-        }],
-      }).catch(() => null);
+    await interaction.channel.send({
+      embeds: [{
+        color:       0xed4245,
+        title:       '🔒 Ticket Closed',
+        description: `Closed by ${invoker.tag}\n**Reason:** ${reason}`,
+        timestamp:   new Date().toISOString(),
+      }],
+    }).catch(() => null);
 
-      setTimeout(async () => {
-        await interaction.channel.delete(`Ticket closed by ${invoker.tag}`).catch(() => null);
-      }, 5000);
+    setTimeout(async () => {
+      await interaction.channel.delete(`Ticket closed by ${invoker.tag}`).catch(() => null);
+    }, 5000);
 
-      return;
+    return;
     }
 
     // ─── add ───────────────────────────────────────
