@@ -1,25 +1,20 @@
-const { Player } = require('discord-player');
+const { Player }          = require('discord-player');
 const { YoutubeiExtractor } = require('@discord-player/extractor');
 
 let playerInstance = null;
 
-/**
- * Initialise the discord-player instance.
- * Call once on bot startup — subsequent calls return the cached instance.
- * @param {import('discord.js').Client} client
- * @returns {Promise<Player>}
- */
 async function initPlayer(client) {
   if (playerInstance) return playerInstance;
 
   const player = new Player(client, {
     ytdlOptions: {
-      quality: 'highestaudio',
-      highWaterMark: 1 << 25,
+      quality:        'highestaudio',
+      highWaterMark:  1 << 25,
     },
   });
 
   // ─── Load extractors ──────────────────────────────
+  await player.extractors.loadDefault((ext) => ext !== 'YouTubeExtractor');
   await player.extractors.register(YoutubeiExtractor, {});
 
   // ─── Player events ────────────────────────────────
@@ -97,10 +92,6 @@ async function initPlayer(client) {
   return player;
 }
 
-/**
- * Get the current player instance.
- * @returns {Player|null}
- */
 function getPlayer() {
   return playerInstance;
 }
