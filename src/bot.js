@@ -8,6 +8,8 @@ const fs   = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+const { initPlayer } = require('./utils/player');
+
 // ─── Client ───────────────────────────────────────────────
 const client = new Client({
   intents: [
@@ -15,6 +17,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent,
   ],
   partials: [
@@ -25,8 +28,8 @@ const client = new Client({
 });
 
 // ─── Collections ──────────────────────────────────────────
-client.commands  = new Collection(); // name → command module
-client.cooldowns = new Collection(); // name → user → timestamp
+client.commands  = new Collection();
+client.cooldowns = new Collection();
 
 // ─── Load commands ────────────────────────────────────────
 const commandsPath = path.join(__dirname, 'commands');
@@ -65,6 +68,15 @@ for (const file of eventFiles) {
   console.log(`[Events] Registered: ${event.name}${event.once ? ' (once)' : ''}`);
 }
 
+// ─── Initialise music player ──────────────────────────────
+client.once('ready', async () => {
+  try {
+    await initPlayer(client);
+  } catch (err) {
+    console.error('[Player] Failed to initialise:', err.message);
+  }
+});
+
 // ─── Unhandled errors ─────────────────────────────────────
 process.on('unhandledRejection', err => {
   console.error('[Process] Unhandled rejection:', err);
@@ -72,7 +84,6 @@ process.on('unhandledRejection', err => {
 
 process.on('uncaughtException', err => {
   console.error('[Process] Uncaught exception:', err);
-  // Don't exit — let PM2 decide based on the error
 });
 
 // ─── Login ────────────────────────────────────────────────
@@ -83,4 +94,4 @@ client.login(process.env.DISCORD_TOKEN)
     process.exit(1);
   });
 
-module.exports = client; // exported so dashboard can reference it if needed
+module.exports = client;

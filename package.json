@@ -11,7 +11,9 @@
     "dev:dash": "nodemon dashboard/app.js"
   },
   "dependencies": {
+    "@discord-player/extractor": "^7.2.0",
     "connect-flash": "^0.1.1",
+    "discord-player": "^7.2.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
