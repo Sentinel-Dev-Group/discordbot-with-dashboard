@@ -1,6 +1,6 @@
 const { ActivityType } = require('discord.js');
 const { execute: dbExecute, query } = require('../db');
-const { subscribeToStreamer, listSubscriptions } = require('../utils/twitch');
+const { subscribeToStreamer, listSubscriptions, getAccessToken } = require('../utils/twitch');
 
 module.exports = {
   name: 'ready',
@@ -95,12 +95,17 @@ module.exports = {
     setInterval(checkExpiredMutes, 60 * 1000);
     console.log('[Ready] Expired mute checker started');
 
+    // ─── Pre-warm Twitch token ──────────────────────────
+    try {
+      await getAccessToken();
+      console.log('[Ready] Twitch token pre-warmed');
+    } catch (err) {
+      console.warn('[Ready] Twitch token pre-warm failed:', err.message);
+    }
+
     // ─── Twitch EventSub subscription sync ──────────────
-    // Runs on startup to re-subscribe to any streamers that lost
-    // their subscription while the bot was offline
     const syncTwitchSubscriptions = async () => {
       try {
-        // Get all tracked streamers from DB
         const tracked = await query(
           `SELECT DISTINCT twitch_user_id, twitch_login FROM twitch_subscriptions`,
         );
@@ -109,7 +114,6 @@ module.exports = {
 
         console.log(`[Twitch] Syncing ${tracked.length} EventSub subscription(s)...`);
 
-        // Get all active subscriptions from Twitch
         const activeSubs = await listSubscriptions();
         const activeUserIds = new Set(
           activeSubs
@@ -117,7 +121,6 @@ module.exports = {
             .map(s => s.condition?.broadcaster_user_id)
         );
 
-        // Re-subscribe to any that are missing
         for (const streamer of tracked) {
           if (!activeUserIds.has(streamer.twitch_user_id)) {
             console.log(`[Twitch] Re-subscribing to ${streamer.twitch_login}...`);
@@ -141,7 +144,6 @@ module.exports = {
       }
     };
 
-    // Run after a short delay to let the bot fully connect first
     setTimeout(syncTwitchSubscriptions, 10000);
   },
 };
