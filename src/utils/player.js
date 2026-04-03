@@ -1,4 +1,4 @@
-const { Player }          = require('discord-player');
+const { Player }                               = require('discord-player');
 const { YoutubeiExtractor, DefaultExtractors } = require('@discord-player/extractor');
 
 let playerInstance = null;
@@ -6,15 +6,11 @@ let playerInstance = null;
 async function initPlayer(client) {
   if (playerInstance) return playerInstance;
 
-  const player = new Player(client, {
-    ytdlOptions: {
-      quality:        'highestaudio',
-      highWaterMark:  1 << 25,
-    },
-  });
+  const player = new Player(client);
 
   // ─── Load extractors ──────────────────────────────
   await player.extractors.loadMulti(DefaultExtractors);
+  await player.extractors.register(YoutubeiExtractor, {});
   console.log('[Player] Extractors loaded');
 
   // ─── Player events ────────────────────────────────
@@ -85,6 +81,12 @@ async function initPlayer(client) {
 
   player.events.on('playerError', (queue, err) => {
     console.error('[Player] Player error:', err.message);
+    queue.metadata.channel.send({
+      embeds: [{
+        color:       0xed4245,
+        description: `❌ Playback error: ${err.message}`,
+      }],
+    }).catch(() => null);
   });
 
   playerInstance = player;
