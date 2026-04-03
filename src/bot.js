@@ -69,13 +69,13 @@ for (const file of eventFiles) {
 }
 
 // ─── Initialise music player ──────────────────────────────
-client.once('ready', async () => {
+(async () => {
   try {
     await initPlayer(client);
   } catch (err) {
     console.error('[Player] Failed to initialise:', err.message);
   }
-});
+})();
 
 // ─── Unhandled errors ─────────────────────────────────────
 process.on('unhandledRejection', err => {
