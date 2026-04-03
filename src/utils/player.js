@@ -1,5 +1,5 @@
 const { Player }          = require('discord-player');
-const { YoutubeiExtractor } = require('@discord-player/extractor');
+const { YoutubeiExtractor, DefaultExtractors } = require('@discord-player/extractor');
 
 let playerInstance = null;
 
@@ -15,7 +15,7 @@ async function initPlayer(client) {
 
   // ─── Load extractors ──────────────────────────────
   await player.extractors.loadDefault((ext) => ext !== 'YouTubeExtractor');
-  await player.extractors.register(YoutubeiExtractor, {});
+  await player.extractors.loadMulti(DefaultExtractors);
   console.log('[Player] Extractors loaded');
 
   // ─── Player events ────────────────────────────────
