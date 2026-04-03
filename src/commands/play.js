@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { useMainPlayer }       = require('discord-player');
+const { getPlayer }           = require('../utils/player');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -14,6 +15,16 @@ module.exports = {
 
   async execute(interaction, client) {
     await interaction.deferReply();
+
+    // ─── Check player is ready ────────────────────
+    if (!getPlayer()) {
+      return interaction.editReply({
+        embeds: [{
+          color:       0xed4245,
+          description: '❌ Music player is still initialising. Please wait a moment and try again.',
+        }],
+      });
+    }
 
     const { guild, member, channel } = interaction;
     const query = interaction.options.getString('query');
@@ -48,20 +59,18 @@ module.exports = {
       const { track } = await player.play(voiceChannel, query, {
         nodeOptions: {
           metadata: {
-            channel,        // text channel for sending now-playing messages
+            channel,
             interaction,
           },
-          selfDeaf:           true,
-          volume:             80,
-          leaveOnEmpty:       true,
-          leaveOnEmptyDelay:  30000,  // 30s
-          leaveOnEnd:         true,
-          leaveOnEndDelay:    30000,
+          selfDeaf:          true,
+          volume:            80,
+          leaveOnEmpty:      true,
+          leaveOnEmptyDelay: 30000,
+          leaveOnEnd:        true,
+          leaveOnEndDelay:   30000,
         },
       });
 
-      // audioTrackAdd event handles the "added to queue" message
-      // Only send a reply if nothing is playing yet
       const queue = player.nodes.get(guild.id);
       if (queue && queue.isPlaying()) return interaction.editReply({
         embeds: [{
