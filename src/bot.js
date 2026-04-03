@@ -68,14 +68,16 @@ for (const file of eventFiles) {
   console.log(`[Events] Registered: ${event.name}${event.once ? ' (once)' : ''}`);
 }
 
-// ─── Initialise music player ──────────────────────────────
-(async () => {
-  try {
-    await initPlayer(client);
-  } catch (err) {
-    console.error('[Player] Failed to initialise:', err.message);
-  }
-})();
+// ─── Initialise music player after login ─────────────────
+client.once('ready', () => {
+  setTimeout(async () => {
+    try {
+      await initPlayer(client);
+    } catch (err) {
+      console.error('[Player] Failed to initialise:', err.message);
+    }
+  }, 3000);
+});
 
 // ─── Unhandled errors ─────────────────────────────────────
 process.on('unhandledRejection', err => {
