@@ -16,6 +16,7 @@ async function initPlayer(client) {
   // ─── Load extractors ──────────────────────────────
   await player.extractors.loadDefault((ext) => ext !== 'YouTubeExtractor');
   await player.extractors.register(YoutubeiExtractor, {});
+  console.log('[Player] Extractors loaded');
 
   // ─── Player events ────────────────────────────────
   player.events.on('playerStart', (queue, track) => {
