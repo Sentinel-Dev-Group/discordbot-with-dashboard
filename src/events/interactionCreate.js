@@ -126,12 +126,31 @@ module.exports = {
       }
     }
 
-    // ─── Log command usage ────────────────────────────
+    // ─── Execute command ──────────────────────────────
+    try {
+      await command.execute(interaction, client);
+    } catch (err) {
+      console.error(`[Interactions] Error in /${interaction.commandName}:`, err);
+      try {
+        const errorPayload = {
+          content: '❌ Something went wrong while running that command.',
+          ephemeral: true,
+        };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(errorPayload);
+        } else {
+          await interaction.reply(errorPayload);
+        }
+      } catch (replyErr) {
+        console.error('[Interactions] Failed to send error response:', replyErr.message);
+      }
+    }
+
+    // ─── Log command usage (after execution) ──────────
     try {
       const options = {};
       interaction.options.data.forEach(opt => {
         if (opt.type === 1 || opt.type === 2) {
-          // Subcommand or subcommand group — flatten nested options
           opt.options?.forEach(subOpt => {
             options[subOpt.name] = subOpt.value ?? null;
           });
@@ -155,24 +174,6 @@ module.exports = {
       );
     } catch (err) {
       console.error('[Interactions] Failed to log command:', err.message);
-    }
-
-    // ─── Execute command ──────────────────────────────
-    try {
-      await command.execute(interaction, client);
-    } catch (err) {
-      console.error(`[Interactions] Error in /${interaction.commandName}:`, err);
-
-      const errorPayload = {
-        content: '❌ Something went wrong while running that command.',
-        ephemeral: true,
-      };
-
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorPayload);
-      } else {
-        await interaction.reply(errorPayload);
-      }
     }
   },
 };
