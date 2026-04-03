@@ -14,7 +14,6 @@ async function initPlayer(client) {
   });
 
   // ─── Load extractors ──────────────────────────────
-  await player.extractors.loadDefault((ext) => ext !== 'YouTubeExtractor');
   await player.extractors.loadMulti(DefaultExtractors);
   console.log('[Player] Extractors loaded');
 
