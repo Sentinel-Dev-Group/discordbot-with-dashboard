@@ -1,4 +1,4 @@
-const { InteractionType } = require('discord.js');
+const { InteractionType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const { execute: dbExecute } = require('../db');
 
 module.exports = {
@@ -35,17 +35,50 @@ module.exports = {
       }
 
       if (interaction.customId === 'ticket_close') {
+        // Show a modal so the user can optionally enter a close reason
+        const modal = new ModalBuilder()
+          .setCustomId('ticket_close_modal')
+          .setTitle('Close Ticket');
+
+        const reasonInput = new TextInputBuilder()
+          .setCustomId('close_reason')
+          .setLabel('Reason for closing')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('Describe why this ticket is being closed…')
+          .setRequired(false)
+          .setMaxLength(300);
+
+        modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+
+        try {
+          await interaction.showModal(modal);
+        } catch (err) {
+          console.error('[Interactions] Error showing close modal:', err);
+        }
+        return;
+      }
+
+      return;
+    }
+
+    // ─── Modal submissions ────────────────────────────
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId === 'ticket_close_modal') {
+        const ticketCommand = require('../commands/ticket');
+        const reason = interaction.fields.getTextInputValue('close_reason')?.trim() || 'No reason provided';
+
         interaction.options = {
           getSubcommand: () => 'close',
-          getString:     () => null,
+          getString:     (key) => key === 'reason' ? reason : null,
           getUser:       () => null,
           getChannel:    () => null,
           data:          [],
         };
+
         try {
           await ticketCommand.execute(interaction, client);
         } catch (err) {
-          console.error('[Interactions] Error in ticket_close button:', err);
+          console.error('[Interactions] Error in ticket_close_modal:', err);
           if (interaction.replied) {
             await interaction.followUp({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
           } else if (interaction.deferred) {
@@ -56,8 +89,6 @@ module.exports = {
         }
         return;
       }
-
-      return;
     }
 
     // ─── Slash commands only ──────────────────────────
