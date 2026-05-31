@@ -23,8 +23,10 @@ module.exports = {
           await ticketCommand.execute(interaction, client);
         } catch (err) {
           console.error('[Interactions] Error in ticket_open button:', err);
-          if (interaction.replied || interaction.deferred) {
+          if (interaction.replied) {
             await interaction.followUp({ content: '❌ Something went wrong opening the ticket.', ephemeral: true });
+          } else if (interaction.deferred) {
+            await interaction.editReply({ content: '❌ Something went wrong opening the ticket.' });
           } else {
             await interaction.reply({ content: '❌ Something went wrong opening the ticket.', ephemeral: true });
           }
@@ -44,8 +46,10 @@ module.exports = {
           await ticketCommand.execute(interaction, client);
         } catch (err) {
           console.error('[Interactions] Error in ticket_close button:', err);
-          if (interaction.replied || interaction.deferred) {
+          if (interaction.replied) {
             await interaction.followUp({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
+          } else if (interaction.deferred) {
+            await interaction.editReply({ content: '❌ Something went wrong closing the ticket.' });
           } else {
             await interaction.reply({ content: '❌ Something went wrong closing the ticket.', ephemeral: true });
           }
